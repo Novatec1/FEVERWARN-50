@@ -775,6 +775,43 @@ if(core_body<36){
  core_body_lower=error_lower;
  
 }
+//===========================================================================================//
+float percentile(float arr[], int n) 
+{ 
+    int i, j, count;
+    float percent; 
+  
+    // Start of the loop that calculates percentile 
+    for (i = 0; i < n; i++) { 
+  
+        count = 0; 
+        for (int j = 0; j < n; j++) { 
+  
+            // Comparing the marks of student i 
+            // with all other students 
+            if (arr[i] > arr[j]) { 
+                count++; 
+            } 
+        } 
+        percent = (count * 100) / (n - 1); 
+  
+        
+    }
+    return percent; 
+} 
+float calibrate_readings(float raw){
+    
+    float calib_1,calibrated,ca_bb;
+    calib_1 =( 0.0015*pow(raw, 3)) - (0.1308*pow(raw,2)) + (4.0697*raw) - 7.8276;
+    calib_1 = 0.7375*calib_1 + 8.7458;
+    ca_bb = 0.6088*raw + 16.949;
+    if (calib_1>=36)
+            calibrated = max(ca_bb, calib_1);
+    else
+            calibrated = calib_1-0.5;
+    return calibrated;
+
+}
 /*----------------------------------------pulse_check--------------------------------------*/
 void pulse_check() { // function for temperature check
   unsigned long previousMillis = millis();
@@ -782,7 +819,7 @@ void pulse_check() { // function for temperature check
   char i = 0;
   char pulse_count = 0;
   float temp_data[50];
-  float pulse_mean, pulse_std;
+  float pulse_mean, pulse_std;float median_95,median_90,median_50;
   //if((ot_nw>tr_nw)&&(detect_flag==0)){
   while (((millis() - previousMillis) <= 1000) && (digitalRead(interruptPin) == 0)) {
     // omron.data_omron();
@@ -804,11 +841,15 @@ void pulse_check() { // function for temperature check
     pulse_mean = stats.average(temp_data, i);
     pulse_std = stats.stdev(temp_data, i);
     i = 0;
-     predict_core_body(pulse_median,amb_data);
+    predict_core_body(pulse_median,amb_data);
     if ((pulse_std / pulse_mean) * 100 < 20) {
       Serial.print(pulse_median);
-      obj_final = (calib_a * pow(pulse_median, 3)) + (calib_b * pow(pulse_median, 2)) + (calib_m * pulse_median) + calib_c;
-      obj_final_c = obj_final;
+      if((calib_m==0.0)&&(calib_c==0.0)){
+         obj_final = calibrate_readings(pulse_median);
+      }else{
+        obj_final = (calib_m * pulse_median) + calib_c;
+      }      
+      obj_final_c =obj_final;
       
         if ((obj_final > Threshold_T2M) && (obj_final <= Threshold_T2H)) {
           //----------------fever case----------------------------//
