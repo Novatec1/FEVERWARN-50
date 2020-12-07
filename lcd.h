@@ -6,16 +6,17 @@
 
 ***************************************************************************/
 
-#include "FS.h"
-#include "SPIFFS.h"
 #include "TFT_eSPI.h"
 #include "RTClib.h"
+#include "config.h"
 
-extern float obj_final;
-extern float amb_data;
-extern int time_display;
 extern TFT_eSPI tft;
 extern RTC_DS3231 rtc;
 void home_screen();
-void change_screen(String display_data, float font_size, char unit, char show_display);
+void change_screen(user_config_t &config,float obj_final, String display_data);
+void lcd_init();
+void rtc_init();
+void calibration_screen();
+void save_screen();
+void scan_screen();
 #endif
