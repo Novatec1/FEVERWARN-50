@@ -266,7 +266,6 @@ void server_setup(){
   server.on("/display_temp", display_temp);
   server.on("/display_font", display_font);
   server.on("/display_time", set_time);
-  server.begin();
   server.on("/time_adj", time_adj);
   server.on("/page_data", page_data);
   server.on("/calibration", calibration);
@@ -275,6 +274,7 @@ void server_setup(){
   server.on("/calibration_history", cal_history);
   server.on("/delete_history", del_history);
   server.on("/core_fist_switch", core_fist);
+  server.begin();
 }
 
 void client_hndl(){
