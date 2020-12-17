@@ -442,7 +442,6 @@ void server_setup(){
   server.on("/calibration_history", cal_history);
   server.on("/delete_history", del_history);
   server.on("/core_fist_switch", core_fist);
-<<<<<<< HEAD
   server.on("/jquery.min.js", HTTP_GET, onJavaScript);
   server.on("/serverIndex", HTTP_GET, []() {
     server.sendHeader("Connection", "close");
@@ -473,8 +472,6 @@ void server_setup(){
       }
     }
   });
-=======
->>>>>>> 10148b1dba307e58837ead09a82e48ec584f5bd6
   server.begin();
 }
 
