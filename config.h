@@ -10,7 +10,8 @@
 #include "FS.h"
 #include "SPIFFS.h"
 #include <WString.h> 
-#include "config.h"
+
+
 
 #ifdef FEV_50
 #define echoPin 34
@@ -49,9 +50,11 @@ typedef struct {
     char display_temp;
     float font_size ;
     char time_display ;
-    char core_body;    
+    char core_body;   
+    int timezone; 
 }user_config_t;
 
+void buzzer_setup();
 void loadConfiguration(user_config_t &config);
-void saveConfiguration(user_config_t &config);
+void saveConfiguration(String object,String data_new);
 #endif

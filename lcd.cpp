@@ -11,7 +11,7 @@
 
 TFT_eSPI tft = TFT_eSPI();
 RTC_DS3231 rtc;
-
+extern String adjust_timezone;
 uint16_t read16(fs::File &f) {
   uint16_t result;
   ((uint8_t *)&result)[0] = f.read(); // LSB
@@ -87,8 +87,16 @@ void home_screen() {
 }
 
 void change_screen(user_config_t &config,float obj_final, String display_data) {
-  tft.setTextSize(config.font_size);
-  tft.drawCentreString(display_data, 120, 120, 4);
+  int res=strcmp(display_data.c_str(),"LOW_BODY");
+  Serial.println(res);
+  if(res==0){
+    tft.setTextSize(1.5);
+    tft.drawCentreString(display_data, 120, 120,4);
+  }else{
+     tft.setTextSize(config.font_size);
+     tft.drawCentreString(display_data, 120, 120, 4);
+  }   
+  
   tft.setCursor(60, 50);
   tft.setTextSize(3);
   if(config.display_temp==1){
@@ -103,9 +111,16 @@ void change_screen(user_config_t &config,float obj_final, String display_data) {
   }
   if (config.time_display == 1) {
     tft.setTextSize(3);
+    tft.setCursor(60, 210);    
     DateTime now = rtc.now();
-    tft.setCursor(50, 230);
-    tft.printf("%02d:%02d:%02d", now.hour(), now.minute(), now.second());
+    unsigned long long n =now.unixtime()+config.timezone;
+    n = n % (24 * 3600); 
+    int hr_adj= n / 3600; 
+    n %= 3600; 
+    int min_adj = n / 60 ;
+    n %= 60; 
+    int sec_adj = n; 
+    tft.printf("%02d:%02d:%02d",hr_adj,min_adj,sec_adj);
   }
 }
 
@@ -125,10 +140,14 @@ void rtc_init(){
   if (rtc.lostPower()) {
     Serial.println("RTC lost power, let's set the time!");
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)) + TimeSpan(0, 0, 2, 30));
+    tft.setTextSize(2);
     tft.fillScreen(TFT_BLACK);
-    tft.setCursor(50, 150);
-    tft.print("power lost");
-     tft.fillScreen(TFT_BLUE);
+    tft.setCursor(30, 150);
+    tft.print("RTC power lost");
+    tft.setCursor(30, 170);
+    tft.print("SYNC WITH MOBILE");
+    delay(2000);
+    tft.fillScreen(TFT_BLUE);
   }
 }
 
@@ -140,12 +159,23 @@ void calibration_screen(){
 }
 
 void save_screen(){
-    tft.fillScreen(TFT_MAGENTA);
-    tft.setTextSize(3);
-    tft.setTextColor(TFT_BLACK, TFT_MAGENTA);
-    tft.setCursor(40, 150);
-    tft.println("  SAVED ");
-    delay(500);
+  tft.fillScreen(TFT_MAGENTA);
+  tft.setTextSize(3);
+  tft.setTextColor(TFT_BLACK, TFT_MAGENTA);
+  tft.setCursor(40, 150);
+  tft.println("  SAVED ");
+  delay(500);
+}
+
+void display_threshold(String low,String med){
+  tft.fillScreen(TFT_MAGENTA);
+  tft.setTextColor(TFT_BLACK, TFT_MAGENTA);
+  tft.setTextSize(2);
+  tft.setCursor(20, 130);
+  tft.printf("THRESHOLD_LOW-%s",low);
+  tft.setCursor(20, 160);
+  tft.printf("THRESHOLD_MED-%s",med);
+  delay(2000);
 }
 
 void scan_screen(){
@@ -155,4 +185,21 @@ void scan_screen(){
   tft.setTextSize(3);
   tft.println("SCANNING...");
 }
- 
+
+void calibration_done_screen(){
+  tft.fillScreen(TFT_MAGENTA);
+  tft.setTextSize(2);
+  tft.setTextColor(TFT_BLACK, TFT_MAGENTA);
+  tft.setCursor(40, 150);
+  tft.println("CALIBRATION DONE");
+  delay(2000);
+}
+
+void remove_hand(){
+  tft.fillScreen(TFT_BROWN);
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(20, 140);
+  tft.setTextSize(3);
+  tft.println("REMOVE YOUR ");
+  tft.setCursor(20, 180);
+  tft.println("   HAND");}
