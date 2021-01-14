@@ -10,15 +10,15 @@
 #include "FS.h"
 #include "SPIFFS.h"
 #include <WString.h> 
-
+//#define FEV_50 1
 
 
 #ifdef FEV_50
-#define echoPin 34
+#define echoPin 35
 #define trigPin 13
 #define buzzer  12
 #else
-#define echoPin 34
+#define echoPin 35
 #define trigPin 32
 #define buzzer  33
 #endif
@@ -29,6 +29,7 @@
 #define CALIBRATION_HISTORY        "/calibration_history.txt"
 #define SQL_ALL_DATA               "/spiffs/all_data.db"
 #define SEND_JSON_FILE             "/send_json.txt"
+#define SD_DATA                    "sd_database.txt"
 
 typedef struct {
     unsigned long long time_data ;

@@ -20,6 +20,7 @@ void calibration_screen();
 void save_screen();
 void scan_screen();
 void calibration_done_screen();
+void calibration_fail_screen();
 void remove_hand();
 void display_threshold(String low,String med);
 #endif

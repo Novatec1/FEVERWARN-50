@@ -79,22 +79,22 @@ void home_screen() {
   tft.setTextSize(4);
   drawBmp("/fvrwrn1.bmp", 20, 50);
   drawBmp("/mslogo.bmp", 20, 250);
-  tft.setCursor(70, 150);
+  tft.setCursor(75, 150);
   tft.setTextSize(3);
   tft.println("READY");
   tft.setCursor(40, 200);
-  tft.println("TO SCAN");
+  tft.println(" TO SCAN");
 }
 
 void change_screen(user_config_t &config,float obj_final, String display_data) {
-  int res=strcmp(display_data.c_str(),"LOW_BODY");
+  int res=strcmp(display_data.c_str(),"LOW_TEMP");
   Serial.println(res);
   if(res==0){
     tft.setTextSize(1.5);
-    tft.drawCentreString(display_data, 120, 120,4);
+    tft.drawCentreString(display_data, 120, 140,4);
   }else{
      tft.setTextSize(config.font_size);
-     tft.drawCentreString(display_data, 120, 120, 4);
+     tft.drawCentreString(display_data, 120, 140, 4);
   }   
   
   tft.setCursor(60, 50);
@@ -111,7 +111,7 @@ void change_screen(user_config_t &config,float obj_final, String display_data) {
   }
   if (config.time_display == 1) {
     tft.setTextSize(3);
-    tft.setCursor(60, 210);    
+    tft.setCursor(50, 230);    
     DateTime now = rtc.now();
     unsigned long long n =now.unixtime()+config.timezone;
     n = n % (24 * 3600); 
@@ -153,8 +153,9 @@ void rtc_init(){
 
 void calibration_screen(){
   tft.fillScreen(TFT_BLACK);
-  tft.setCursor(30, 150);
+  tft.setCursor(27, 150);
   tft.setTextSize(3);
+  tft.setTextColor(TFT_MAGENTA,TFT_BLACK);
   tft.println("CALIBRATING");
 }
 
@@ -171,10 +172,14 @@ void display_threshold(String low,String med){
   tft.fillScreen(TFT_MAGENTA);
   tft.setTextColor(TFT_BLACK, TFT_MAGENTA);
   tft.setTextSize(2);
-  tft.setCursor(20, 130);
-  tft.printf("THRESHOLD_LOW-%s",low);
-  tft.setCursor(20, 160);
-  tft.printf("THRESHOLD_MED-%s",med);
+  tft.setCursor(30, 110);
+  tft.print("Lower Threshold");
+  tft.setCursor(70, 140);
+  tft.print(low);
+  tft.setCursor(30, 170);
+  tft.print("Fever Threshold");
+  tft.setCursor(70, 195);
+  tft.print(med);
   delay(2000);
 }
 
@@ -190,8 +195,17 @@ void calibration_done_screen(){
   tft.fillScreen(TFT_MAGENTA);
   tft.setTextSize(2);
   tft.setTextColor(TFT_BLACK, TFT_MAGENTA);
-  tft.setCursor(40, 150);
+  tft.setCursor(30, 150);
   tft.println("CALIBRATION DONE");
+  delay(2000);
+}
+
+void calibration_fail_screen(){
+  tft.fillScreen(TFT_MAGENTA);
+  tft.setTextSize(2);
+  tft.setTextColor(TFT_BLACK, TFT_MAGENTA);
+  tft.setCursor(30, 150);
+  tft.println("CALIBRATION FAIL");
   delay(2000);
 }
 
@@ -202,4 +216,5 @@ void remove_hand(){
   tft.setTextSize(3);
   tft.println("REMOVE YOUR ");
   tft.setCursor(20, 180);
-  tft.println("   HAND");}
+  tft.println("   HAND");
+}

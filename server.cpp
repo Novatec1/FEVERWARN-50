@@ -14,17 +14,19 @@
 #include <Update.h>
 #include <Wstring.h>
 #include "lcd.h"
-#define  "ota.h"
-
+#include "sensor.h"
+float cal1_temp,cal2_temp,log1_temp,log2_temp;
 
 WebServer server(80);
 sqlite3 * db1;
 String adjust_timezone="0";
-
+const char* serverIndex = "<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>";
 int isPost(){
-  return (server.method() == HTTP_POST);  
+  if (server.method() == HTTP_POST)
+    return 1;
+  else
+    return 0;   
 }
-
 void wifi_setup(){
   String ssid1 = "FW50_" + String(WiFi.macAddress());
   WiFi.softAP((const char * ) ssid1.c_str(), (const char * ) String(WiFi.macAddress()).c_str());
@@ -146,6 +148,8 @@ int db_exec(sqlite3 * db, const char * sql) {
 }
 
 void all_data_fetch(const char * sql){
+  if(db_ready==0){
+    db_ready=1;
   if (db_open(SQL_ALL_DATA, & db1))
     return;
   int rc = db_exec(db1,sql);
@@ -153,7 +157,8 @@ void all_data_fetch(const char * sql){
     sqlite3_close(db1);
     return;
   }
-    
+  db_ready=0; 
+ }
 }
 
 
@@ -163,7 +168,7 @@ void getmac() {
 }
 
 void o_data() {
-  String val = String(pulse_median);
+  String val = String(get_data());
   char data_cap[50];
   sprintf( & data_cap[0], "{\"obj_temp\":%s}", val);
   server.send(200, "text/plain", data_cap);
@@ -301,12 +306,6 @@ void time_adj() {
   }
 }
 
-void calibration_start() {
-  cal_on = 1;
-  calibration_screen();
-  server.send(200, "text/plain", "Success\n" );
-}
-
 void display_string() {
   user_config_t config;
   if (isPost()) {
@@ -377,16 +376,46 @@ void last_data() {
   all_data_fetch(q_ery);
 }
 
+void calibration_start() {
+  cal_on=1;
+  calibration_screen();
+  server.send(200, "text/plain", "Success\n" );
+}
+
+void calibration_config(){
+  String y1 = server.arg("duration");
+  String x1 = server.arg("log_temp");
+  String d1 = server.arg("data_point");
+  Serial.println(y1);
+  if(d1.toInt()==1){
+    log1_temp= x1.toFloat();
+    cal1_temp=sensor_calibration(y1.toInt());
+   Serial.print(cal1_temp);
+  }
+  else if(d1.toInt()==2){
+    log2_temp= x1.toFloat();
+    cal2_temp=sensor_calibration(y1.toInt());
+    Serial.print(cal2_temp);
+  }
+   server.send(200, "text/plain", "Success\n" );
+}
+
 void calibration() {
   user_config_t config;
-  String y1 = server.arg("key1");
-  String x1 = server.arg("o1");
-  String y2 = server.arg("key2");
-  String x2 = server.arg("o2");
   float m = 0;
   float c = 0;
-  m = ((y1.toFloat() - y2.toFloat()) / (x1.toFloat() - x2.toFloat()));
-  c = ((x2.toFloat() * y1.toFloat()) - (x1.toFloat() * y2.toFloat())) / (x2.toFloat() - x1.toFloat());
+  Serial.printf("log1_temp:%f,log2_temp:%f,cal1_temp:%f,cal2_temp:%f",log1_temp,log2_temp,cal1_temp,cal2_temp);
+  m = ((log1_temp - log2_temp) / (cal1_temp - cal2_temp));
+  //c = ((cal2_temp * log1_temp) - (cal1_temp * log2_temp)) / (cal2_temp - cal1_temp);
+  c=(log1_temp-m*cal1_temp);
+  if ((String(m), "nan")==0||(String(c), "nan") == 0)
+  { 
+     String val = "{\"m_value\":" + String(m) + ", \"c_value\":" + String(c) + "}";
+      server.send(200, "application/json", val);
+     calibration_fail_screen();
+     delay(500);
+    }
+  else{
   saveConfiguration("CALIB_M",String(m));
   saveConfiguration("CALIB_C",String(c));
   change_config=1;
@@ -398,12 +427,13 @@ void calibration() {
     return;
   }
   DateTime now = rtc.now();
-  String cal_data = "{\"Time\":" + String(now.unixtime() - 19800) + "," + "\"m_value\":" + String(m) + ",\"c_value\":" + String(c) + "}";
+  String cal_data = "{\"Time\":" + String(now.unixtime() ) + "," + "\"m_value\":" + String(m) + ",\"c_value\":" + String(c) + "}";
   history.println(cal_data);
   history.close();
   cal_on = 0;
   calibration_done_screen();
   delay(500);
+  }
   home_screen();
 }
 
@@ -414,13 +444,6 @@ void cal_history() {
 }
 void handleRoot() {
    server.send(200, "text/html", "Arpita");
-}
-
-void onJavaScript(void) {
-    Serial.println("onJavaScript(void)");
-    server.setContentLength(jquery_min_js_v3_2_1_gz_len);
-    server.sendHeader(F("Content-Encoding"), F("gzip"));
-    server.send_P(200, "text/javascript", jquery_min_js_v3_2_1_gz, jquery_min_js_v3_2_1_gz_len);
 }
 
 void server_setup(){
@@ -436,42 +459,44 @@ void server_setup(){
   server.on("/display_time", set_time);
   server.on("/time_adj", time_adj);
   server.on("/page_data", page_data);
+  server.on("/calibration_config", calibration_config);
   server.on("/calibration", calibration);
   server.on("/calibration_start", calibration_start);
   server.on("/display_string", display_string);
   server.on("/calibration_history", cal_history);
   server.on("/delete_history", del_history);
   server.on("/core_fist_switch", core_fist);
-  server.on("/jquery.min.js", HTTP_GET, onJavaScript);
-  server.on("/serverIndex", HTTP_GET, []() {
-    server.sendHeader("Connection", "close");
-    server.send(200, "text/html",serverIndex);
-  });
-  /*handling uploading firmware file */
-  server.on("/update", HTTP_POST, []() {
-    server.sendHeader("Connection", "close");
-    server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
-    ESP.restart();
-  }, []() {
-    HTTPUpload& upload = server.upload();
-    if (upload.status == UPLOAD_FILE_START) {
-      Serial.printf("Update: %s\n", upload.filename.c_str());
-      if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { //start with max available size
-        Update.printError(Serial);
-      }
-    } else if (upload.status == UPLOAD_FILE_WRITE) {
-      /* flashing firmware to ESP*/
-      if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-        Update.printError(Serial);
-      }
-    } else if (upload.status == UPLOAD_FILE_END) {
-      if (Update.end(true)) { //true to set the size to the current progress
-        Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+  server.on("/ota", HTTP_GET, []() {
+      server.sendHeader("Connection", "close");
+      server.send(200, "text/html", serverIndex);
+    });
+    server.on("/update", HTTP_POST, []() {
+      server.sendHeader("Connection", "close");
+      server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
+      ESP.restart();
+    }, []() {
+      HTTPUpload& upload = server.upload();
+      if (upload.status == UPLOAD_FILE_START) {
+        Serial.setDebugOutput(true);
+        Serial.printf("Update: %s\n", upload.filename.c_str());
+        if (!Update.begin()) { //start with max available size
+          Update.printError(Serial);
+        }
+      } else if (upload.status == UPLOAD_FILE_WRITE) {
+        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+          Update.printError(Serial);
+        }
+      } else if (upload.status == UPLOAD_FILE_END) {
+        if (Update.end(true)) { //true to set the size to the current progress
+          Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+        } else {
+          Update.printError(Serial);
+        }
+        Serial.setDebugOutput(false);
       } else {
-        Update.printError(Serial);
+        Serial.printf("Update Failed Unexpectedly (likely broken connection): status=%d\n", upload.status);
       }
-    }
-  });
+    });
   server.begin();
 }
 

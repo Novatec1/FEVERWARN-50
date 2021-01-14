@@ -10,7 +10,7 @@
 extern char cal_on;
 extern float pulse_median;
 extern char change_config;
-
+extern char db_ready;
 void wifi_setup();
 void server_setup();
 void client_hndl();
